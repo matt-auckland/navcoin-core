@@ -4735,6 +4735,7 @@ bool IsStaticRewardEnabled(const CBlockIndex* pindexPrev, const Consensus::Param
 {
     LOCK(cs_main);
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_STATIC_REWARD, versionbitscache) == THRESHOLD_ACTIVE);
+}
 
 bool IsColdStakingEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
