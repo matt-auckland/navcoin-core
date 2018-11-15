@@ -158,6 +158,7 @@ testScripts = [
     'cfund-rawtx-proposal-vote.py',
     'cfund-vote.py',
     'reject-version-bit.py',
+    'cold-staking.py',
 
 ]
 #if ENABLE_ZMQ:
