@@ -32,8 +32,6 @@ class GetColdStakingAddress(NavCoinTestFramework):
         slow_gen(self.nodes[0], 100)
         # Verify the Cold Staking is active
 
-        # address_one = self.nodes[0].getcoldstakingaddress()
-
         # Success cases 
         
         # (two valid inputs) 
