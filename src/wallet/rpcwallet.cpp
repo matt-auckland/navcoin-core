@@ -167,8 +167,8 @@ UniValue getcoldstakingaddress(const UniValue& params, bool fHelp)
             "\nResult:\n"
             "\"coldstakingaddress\"   (string) The a navcoin coldstaking address generted from the two addresses given\n"
             "\nExamples:\n"
-            + HelpExampleCli("getcoldstakingaddress", "\"NLrBucGmTdqCmHPZdVYoKPxNvVPdZvjNsG\" "\"NR5At1AmitcCj8iDNc3Qq2ubPPe3zdCvvp\"")
-            + HelpExampleRpc("getcoldstakingaddress", "\"NLrBucGmTdqCmHPZdVYoKPxNvVPdZvjNsG\" "\"NR5At1AmitcCj8iDNc3Qq2ubPPe3zdCvvp\"")
+            + HelpExampleCli("getcoldstakingaddress", "\"NLrBucGmTdqCmHPZdVYoKPxNvVPdZvjNsG\"", "\"NR5At1AmitcCj8iDNc3Qq2ubPPe3zdCvvp\"")
+            + HelpExampleRpc("getcoldstakingaddress", "\"NLrBucGmTdqCmHPZdVYoKPxNvVPdZvjNsG\"", "\"NR5At1AmitcCj8iDNc3Qq2ubPPe3zdCvvp\"")
         );
 
     if (!IsColdStakingEnabled(pindexBestHeader,Params().GetConsensus()))
