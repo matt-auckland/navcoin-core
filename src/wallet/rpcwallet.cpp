@@ -160,7 +160,15 @@ UniValue getcoldstakingaddress(const UniValue& params, bool fHelp)
     if (fHelp || params.size() != 2)
         throw runtime_error(
             "getcoldstakingaddress \"stakingaddress\" \"spendingaddress\"\n"
-            "\nTODO"
+            "\nArguments:\n"
+            "1. \"stakingaddress\"       (string, required) The address that will be used for staking coins that are held by the coldstaking address. OpenAlias addresses are not supported.\n"
+            "2. \"spendingaddress\"       (string, required) The address that will be used for spending coins that are held by the coldstaking address. OpenAlias addresses are not supported\n"
+            "It is recommended that the two addresses are not controlled by the same wallet.\n"
+            "\nResult:\n"
+            "\"coldstakingaddress\"   (string) The a navcoin coldstaking address generted from the two addresses given\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getcoldstakingaddress", "\"NLrBucGmTdqCmHPZdVYoKPxNvVPdZvjNsG\" "\"NR5At1AmitcCj8iDNc3Qq2ubPPe3zdCvvp\"")
+            + HelpExampleRpc("getcoldstakingaddress", "\"NLrBucGmTdqCmHPZdVYoKPxNvVPdZvjNsG\" "\"NR5At1AmitcCj8iDNc3Qq2ubPPe3zdCvvp\"")
         );
 
     if (!IsColdStakingEnabled(pindexBestHeader,Params().GetConsensus()))
@@ -279,8 +287,8 @@ UniValue setaccount(const UniValue& params, bool fHelp)
             "1. \"navcoinaddress\"  (string, required) The navcoin address to be associated with an account.\n"
             "2. \"account\"         (string, required) The account to assign the address to.\n"
             "\nExamples:\n"
-            + HelpExampleCli("setaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XZ\" \"tabby\"")
-            + HelpExampleRpc("setaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XZ\", \"tabby\"")
+            + HelpExampleCli("setaccount", "\"NLrBucGmTdqCmHPZdVYoKPxNvVPdZvjNsG\" \"tabby\"")
+            + HelpExampleRpc("setaccount", "\"NLrBucGmTdqCmHPZdVYoKPxNvVPdZvjNsG\", \"tabby\"")
         );
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
