@@ -159,6 +159,7 @@ testScripts = [
     'cfund-vote.py',
     'reject-version-bit.py',
     'getcoldstakingaddress.py',
+    'coldstaking_usage.py',
 
 ]
 #if ENABLE_ZMQ:

@@ -4,9 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from test_framework.test_framework import NavCoinTestFramework
-from test_framework.cfund_util import *
-
-import time
+from test_framework.util import *
 
 class GetColdStakingAddress(NavCoinTestFramework):
     """Tests the creation of a cold staking address."""
@@ -31,6 +29,7 @@ class GetColdStakingAddress(NavCoinTestFramework):
 
         slow_gen(self.nodes[0], 100)
         # Verify the Cold Staking is active
+        assert(self.nodes[0].getblockchaininfo()["bip9_softforks"]["coldstaking"]["status"] == "active")
 
         # Success cases 
         
@@ -52,50 +51,66 @@ class GetColdStakingAddress(NavCoinTestFramework):
         # Things that should fail
 
         ## Two of the same address 
+
+        make_addr_fail = True
         
         try:
             self.nodes[0].getcoldstakingaddress(address_one, address_one)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("The staking address should be different to the spending address" in e.error['message'])
+
+        assert(make_addr_fail)
         
         ## Using coldstaking addresses 
         
         try:
             self.nodes[0].getcoldstakingaddress(coldstaking_address_one, address_one)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("Staking address is not a valid NavCoin address" in e.error['message'])
         
         try:
             self.nodes[0].getcoldstakingaddress(address_one, coldstaking_address_one)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("Spending address is not a valid NavCoin address" in e.error['message'])
 
         try:
             self.nodes[0].getcoldstakingaddress(coldstaking_address_one, cold_staking_address_two)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("Staking address is not a valid NavCoin address" in e.error['message'])
 
         try:
             self.nodes[0].getcoldstakingaddress(coldstaking_address_one, coldstaking_address_one)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("The staking address should be different to the spending address" in e.error['message'])
+
+        assert(make_addr_fail)
 
         ## Missing arguments
 
         try:
             self.nodes[0].getcoldstakingaddress(None, address_one)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("JSON value is not a string as expected" in e.error['message'])
 
         try:
             self.nodes[0].getcoldstakingaddress("", address_one)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("Staking address is not a valid NavCoin address" in e.error['message'])
 
         # try:
         #     self.nodes[0].getcoldstakingaddress(address_one)
+#            make_addr_fail = False
         # except JSONRPCException as e:
         #     assert("Arguments" in e.error['message']) # Check if we print out the help docs
+
+        assert(make_addr_fail)
 
         ## Using invalid addresses        
 
@@ -103,35 +118,45 @@ class GetColdStakingAddress(NavCoinTestFramework):
         
         try:
             self.nodes[0].getcoldstakingaddress(123, address_one)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("JSON value is not a string as expected" in e.error['message'])
 
         try:
             self.nodes[0].getcoldstakingaddress("123", address_one)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("Staking address is not a valid NavCoin address" in e.error['message'])
 
         try:
             self.nodes[0].getcoldstakingaddress(address_one, 123)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("JSON value is not a string as expected" in e.error['message'])
 
         try:
             self.nodes[0].getcoldstakingaddress(address_one, "123")
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("Spending address is not a valid NavCoin address" in e.error['message'])
+
+        assert(make_addr_fail)
 
         ### Other strings 
 
         try:
             self.nodes[0].getcoldstakingaddress("\"test\"", address_one)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("Staking address is not a valid NavCoin address" in e.error['message'])
 
         try:
             self.nodes[0].getcoldstakingaddress(address_one, True)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("JSON value is not a string as expected" in e.error['message'])
+
+        assert(make_addr_fail)
 
         ### bitcoin address
         
@@ -140,13 +165,17 @@ class GetColdStakingAddress(NavCoinTestFramework):
 
         try:
             self.nodes[0].getcoldstakingaddress(bitcoin_address_one, address_two)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("Staking address is not a valid NavCoin address" in e.error['message'])
         
         try:
             self.nodes[0].getcoldstakingaddress(address_one, bitcoin_address_two)
+            make_addr_fail = False
         except JSONRPCException as e:
             assert("Spending address is not a valid NavCoin address" in e.error['message'])
+
+        assert(make_addr_fail)
 
 
 if __name__ == '__main__':

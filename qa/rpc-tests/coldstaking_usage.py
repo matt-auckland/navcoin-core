@@ -4,12 +4,12 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from test_framework.test_framework import NavCoinTestFramework
-from test_framework.cfund_util import *
+from test_framework.util import *
 
 import time
 
-class ColdStakingUsuage(NavCoinTestFramework):
-    """Tests the creation of a cold staking address."""
+class ColdStakingUsage(NavCoinTestFramework):
+    """Tests spending and staking to/from a cold staking address."""
 
     def __init__(self):
         super().__init__()
@@ -195,4 +195,4 @@ class ColdStakingUsuage(NavCoinTestFramework):
         
 
 if __name__ == '__main__':
-    ColdStakingUsuage().main()
+    ColdStakingUsage().main()
