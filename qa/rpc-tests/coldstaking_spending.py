@@ -6,10 +6,10 @@
 from test_framework.test_framework import NavCoinTestFramework
 from test_framework.util import *
 
-import time
+#import time
 
-class ColdStakingUsage(NavCoinTestFramework):
-    """Tests spending and staking to/from a cold staking address."""
+class ColdStakingSpending(NavCoinTestFramework):
+    """Tests spending and staking to/from a spending wallet."""
 
     def __init__(self):
         super().__init__()
@@ -44,94 +44,103 @@ class ColdStakingUsage(NavCoinTestFramework):
         address_two_public_key = self.nodes[1].getnewaddress()
         address_two_private_key = self.nodes[1].dumpprivkey(address_two_public_key)
 
+        # Third party addresses and keys
+        address_X_public_key = "mqyGZvLYfEH27Zk3z6JkwJgB1zpjaEHfiW"
+        address_X_private_key = "cMuNajSALbixZvApkcYVE4KgJoeQY92umhEVdQwqX9wSJUzkmdvF"
+        address_Y_public_key = "mrfjgazyerYxDQHJAPDdUcC3jpmi8WZ2uv"
+        address_Y_private_key = "cST2mj1kXtiRyk8VSXU3F9pnTp7GrGpyqHRv4Gtap8jo4LGUMvqo"
+
         addr1_info = self.nodes[0].validateaddress(address_one_public_key)
 
-        # We control the staking address
-        # coldstaking_address_one = self.nodes[0].getcoldstakingaddress(address_one_public_key, address_two_public_key)
-        
-        # We control the spending address
-        coldstaking_address_two = self.nodes[0].getcoldstakingaddress(address_two_public_key, address_one_public_key)
+
+
+        ## Our wallet holds the spending address key
+        coldstaking_address_two = self.nodes[0].getcoldstakingaddress(address_X_public_key, address_one_public_key)
         
         # Sending to cold address:
             # Success case:
-                # Available balance increase (if spending wallet) 
-                # Staking weight decrease (from sender) 
-                # Available balance decrease (from sender) 
-                # Staking weight increase (if staking wallet) 
+                # Available balance increase (or stay the same if sending wallet = spending wallet)
+                # Staking weight decrease (if our wallet is the spending wallet)
+
+        balance_before = self.nodes[0].getbalance()
+        staking_weight_before = self.nodes[0].getstakinginfo()["weight"]
+
+        # Check wallet weight roughly equals wallet balance
+        assert(round(staking_weight_before / 100000000.0, -5) == round(balance_before, -5))
+
+        # Send funds to the cold staking address (leave some NAV for fees)
+        self.nodes[0].sendtoaddress(coldstaking_address_two, self.nodes[0].getbalance() - 1)
+
+        balance_step_one = self.nodes[0].getbalance()
+        staking_weight_one = self.nodes[0].getstakinginfo()["weight"]
+
+        # We expect our balance to decrease by just the fees
+        # We expect our staking weight to decrease
+        print(staking_weight_before, staking_weight_one)
+
+        assert(balance_step_one >= balance_before - 1)
+        assert(staking_weight_one / 100000000.0 <= 1)
 
 
-        # balance_before = self.nodes[0].getbalance()
-        # staking_weight_before = self.nodes[0].getstakinginfo()["weight"]
 
-        # send to our the cold staking address that we control the staking address for        
-        self.nodes[0].sendtoaddress(coldstaking_address_two, 49.999)
-        # balance_step_one = self.nodes[0].getbalance()
-        # staking_weight_one = self.nodes[0].getstakinginfo()["weight"]
+        # Test spending from a cold staking wallet with the spending key
+            # Send half of funds to a third party address
+        self.nodes[0].sendtoaddress(address_Y_public_key, float(balance_step_one) * 0.5)
 
-        # We expect our balance to decrease by tx amount + fees
-        # We expect our staking weight to remain the same
-        # assert(str(float(balance_before) - float(10) - SENDING_FEE) == str(balance_step_one)[0:-4])
-        # print("weight befpre", str(staking_weight_before), "weight after", str(staking_weight_one))
-        # assert(str(staking_weight_before) == str(staking_weight_one))
+        balance_step_two = self.nodes[0].getbalance()
 
-        self.nodes[0].generate(1)
-        block_height = self.nodes[0].getblockcount()
+        # We expect our balance to be half spent (less some fees)
+        assert(balance_step_two <= balance_step_one - 1)
 
-        block_hash = self.nodes[0].getblockhash(block_height)
-        spending_tx_block = self.nodes[0].getblock(block_hash)
+
+
+#        self.nodes[0].generate(1)
+#        block_height = self.nodes[0].getblockcount()
+
+#        block_hash = self.nodes[0].getblockhash(block_height)
+#        spending_tx_block = self.nodes[0].getblock(block_hash)
         
-        try:
-            tx = self.nodes[0].getrawtransaction(spending_tx_block["tx"][1])
+#        try:
+#            tx = self.nodes[0].getrawtransaction(spending_tx_block["tx"][1])
             
-            print('PRINTING DECODED RAW TX FROM BLOCK')
-            print(self.nodes[0].decoderawtransaction(tx))
-            print('****')
+#            print('PRINTING DECODED RAW TX FROM BLOCK')
+#            print(self.nodes[0].decoderawtransaction(tx))
+#            print('****')
 
-            raw_tx = self.nodes[0].createrawtransaction(
-                [{
-                    "txid": tx,
-                    "vout": 1
-                }],
-                {address_two_public_key: 9.9999}
-            )
+#            raw_tx = self.nodes[0].createrawtransaction(
+#                [{
+#                    "txid": tx,
+#                    "vout": 1
+#                }],
+#                {address_two_public_key: 9.9999}
+#            )
 
-            print('PRINTING OUR NEW RAW TX')
-            print(self.nodes[0].decoderawtransaction(raw_tx))
-            print('****')
+#            print('PRINTING OUR NEW RAW TX')
+#            print(self.nodes[0].decoderawtransaction(raw_tx))
+#            print('****')
 
-            signed_raw_tx = self.nodes[0].signrawtransaction(raw_tx)
+#            signed_raw_tx = self.nodes[0].signrawtransaction(raw_tx)
 
-            print('PRINTING OUR SIGNED RAW TX')
-            print(signed_raw_tx)
-            print('****')
+#            print('PRINTING OUR SIGNED RAW TX')
+#            print(signed_raw_tx)
+#            print('****')
 
-            print('PRINTING OUR DECODED RAW TX')
-            print(self.nodes[0].decoderawtransaction(str(signed_raw_tx)))
-            print('****')
+#            print('PRINTING OUR DECODED RAW TX')
+#            print(self.nodes[0].decoderawtransaction(str(signed_raw_tx)))
+#            print('****')
 
-            self.nodes[0].sendrawtransaction(str(signed_raw_tx))
+#            self.nodes[0].sendrawtransaction(str(signed_raw_tx))
             
-            print("sending worked")
-        except JSONRPCException as e:
-            print('hey look error')
-            print(e.error['message'])
-            assert(1==2)
+#            print("sending worked")
+#        except JSONRPCException as e:
+#            print('hey look error')
+#            print(e.error['message'])
+#            assert(1==2)
 
 
-        # send to our the cold staking address that we control the spending address for        
-    #     balance_step_one = self.nodes[0].getbalance()
-    #     self.nodes[0].sendtoaddress(coldstaking_address_two, 10)
-    #     balance_step_two = self.nodes[0].getbalance()
-    #     staking_weight_two = self.nodes[0].getstakinginfo()["weight"]
         
     #     spending_tx_block = self.nodes[0].getblock(self.nodes[0].getblockhash(block_height))
 
-    #     # We expect our balance to decrease by just the fees
-    #     # We expect our staking weight to remain the same
-    #     assert(str(float(balance_step_one) - SENDING_FEE ) == str( float(balance_step_two) )  )
-    #     # assert(staking_weight_before == staking_weight_one)
-        
-    #     self.nodes[0].generate(1)
 
     #     # Sending from spending address:
     #         # From wallet that controls staking address only :
@@ -195,4 +204,4 @@ class ColdStakingUsage(NavCoinTestFramework):
         
 
 if __name__ == '__main__':
-    ColdStakingUsage().main()
+    ColdStakingSpending().main()
