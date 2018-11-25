@@ -6,8 +6,6 @@
 from test_framework.test_framework import NavCoinTestFramework
 from test_framework.util import *
 
-#import time
-
 class ColdStakingSpending(NavCoinTestFramework):
     """Tests spending and staking to/from a spending wallet."""
 
@@ -41,8 +39,8 @@ class ColdStakingSpending(NavCoinTestFramework):
 
         address_one_public_key = self.nodes[0].getnewaddress()
         address_one_private_key = self.nodes[0].dumpprivkey(address_one_public_key)
-        address_two_public_key = self.nodes[1].getnewaddress()
-        address_two_private_key = self.nodes[1].dumpprivkey(address_two_public_key)
+#        address_two_public_key = self.nodes[1].getnewaddress()
+#        address_two_private_key = self.nodes[1].dumpprivkey(address_two_public_key)
 
         # Third party addresses and keys
         address_X_public_key = "mqyGZvLYfEH27Zk3z6JkwJgB1zpjaEHfiW"
@@ -70,9 +68,13 @@ class ColdStakingSpending(NavCoinTestFramework):
 
         # Send funds to the cold staking address (leave some NAV for fees)
         self.nodes[0].sendtoaddress(coldstaking_address_two, self.nodes[0].getbalance() - 1)
+        slow_gen(self.nodes[0], 1)
 
         balance_step_one = self.nodes[0].getbalance()
         staking_weight_one = self.nodes[0].getstakinginfo()["weight"]
+        print(balance_step_one, self.nodes[0].listunspent())
+        txids = [ n["txid"] for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_two]
+        print(txids)
 
         # We expect our balance to decrease by just the fees
         # We expect our staking weight to decrease
@@ -84,14 +86,26 @@ class ColdStakingSpending(NavCoinTestFramework):
 
 
         # Test spending from a cold staking wallet with the spending key
-            # Send half of funds to a third party address
-        self.nodes[0].sendtoaddress(address_Y_public_key, float(balance_step_one) * 0.5)
+            # Send funds to a third party address using a signed raw transaction
+        listunspent_txs = [ n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_two]
+        self.send_raw_transaction(listunspent_txs[0], address_Y_public_key, coldstaking_address_two, float(balance_step_one) * 0.5)
+        slow_gen(self.nodes[0], 1)
 
         balance_step_two = self.nodes[0].getbalance()
 
         # We expect our balance to be half spent (less some fees)
-        assert(balance_step_two <= balance_step_one - 1)
+        assert(balance_step_two <= float(balance_step_one) * 0.5)
 
+
+            # Send funds using rpc (leave some NAV for fees)
+        self.nodes[0].sendtoaddress(address_Y_public_key, balance_step_two - 1)
+
+        balance_step_three = self.nodes[0].getbalance()
+
+        print(balance_step_one, balance_step_two, self.nodes[0].getbalance())
+
+        # We expect our balance to be mostly spent
+        assert(balance_step_three <= 1)
 
 
 #        self.nodes[0].generate(1)
@@ -178,29 +192,19 @@ class ColdStakingSpending(NavCoinTestFramework):
     #         # Staking rawtx w/signing (should fail)
 
 
+    def send_raw_transaction(self, txinfo, to_address, change_address, amount):
+        # Create a raw tx
+        inputs = [{ "txid" : txinfo["txid"], "vout" : 1}]
+        outputs = { to_address : amount, change_address : float(txinfo["amount"]) - amount - 0.01 }
+        rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
 
-    # def send_raw_transaction(self, destination_address, amount, time, description):
+        # Sign raw transaction
+        signresult = self.nodes[0].signrawtransaction(rawtx)
+        print(signresult)
+        assert(signresult["complete"])
 
-    #     amount = amount * 100000000
-
-    #     # Create a raw proposal tx
-    #     raw_proposal_tx = self.nodes[0].createrawtransaction(
-    #         [],
-    #         {"6ac1": 1},
-    #         json.dumps({"v": 2, "n": amount, "a": destination_address,  "d": time, "s": description})
-    #     )
-
-    #     # Modify version
-    #     raw_proposal_tx = "04" + raw_proposal_tx[2:]
-
-    #     # Fund raw transaction
-    #     raw_proposal_tx = self.nodes[0].fundrawtransaction(raw_proposal_tx)['hex']
-
-    #     # Sign raw transaction
-    #     raw_proposal_tx = self.nodes[0].signrawtransaction(raw_proposal_tx)['hex']
-
-    #     # Send raw transaction
-    #     return self.nodes[0].sendrawtransaction(raw_proposal_tx)
+        # Send raw transaction
+        return self.nodes[0].sendrawtransaction(signresult['hex'])
         
 
 if __name__ == '__main__':

@@ -41,8 +41,8 @@ class ColdStakingStaking(NavCoinTestFramework):
 
         address_one_public_key = self.nodes[0].getnewaddress()
         address_one_private_key = self.nodes[0].dumpprivkey(address_one_public_key)
-        address_two_public_key = self.nodes[1].getnewaddress()
-        address_two_private_key = self.nodes[1].dumpprivkey(address_two_public_key)
+#        address_two_public_key = self.nodes[1].getnewaddress()
+#        address_two_private_key = self.nodes[1].dumpprivkey(address_two_public_key)
 
         # Third party addresses and keys
         address_X_public_key = "mqyGZvLYfEH27Zk3z6JkwJgB1zpjaEHfiW"
@@ -77,13 +77,29 @@ class ColdStakingStaking(NavCoinTestFramework):
         # We expect our staking weight to remain the same
         print(staking_weight_before, staking_weight_one)
         assert(balance_step_one <= 1)
-#        assert(staking_weight_one / 100000000.0 >= staking_weight_before / 100000000.0 - 1)
+#        assert(staking_weight_one / 100000000.0 >= staking_weight_before / 100000000.0 - 1) #need to adjust the coinage before testing
 
 
         # Test spending from a cold staking wallet with the staking key
-            # Send half of funds to a third party address
         spending_fail = True
 
+            # Send funds to a third party address using a signed raw transaction
+        try:
+            listunspent_txs = [ n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_one]
+            self.send_raw_transaction(listunspent_txs[0], address_Y_public_key, coldstaking_address_one, float(balance_step_one) * 0.5)
+            spending_fail = False
+        except IndexError:
+            pass
+        except JSONRPCException as e:
+            pass
+
+        # We expect our balance and weight to be unchanged
+        assert(self.nodes[0].getbalance() == balance_step_one)
+        assert(spending_fail)
+        assert(self.nodes[0].getstakinginfo()["weight"] / 100000000.0 >= staking_weight_one / 100000000.0 - 1)
+
+
+            # Send funds using rpc
         try:
             self.nodes[0].sendtoaddress(address_Y_public_key, float(balance_before) * 0.5)
             spending_fail = False
@@ -97,48 +113,48 @@ class ColdStakingStaking(NavCoinTestFramework):
 
 
 
-        self.nodes[0].generate(1)
-        block_height = self.nodes[0].getblockcount()
+#        self.nodes[0].generate(1)
+#        block_height = self.nodes[0].getblockcount()
 
-        block_hash = self.nodes[0].getblockhash(block_height)
-        spending_tx_block = self.nodes[0].getblock(block_hash)
+#        block_hash = self.nodes[0].getblockhash(block_height)
+#        spending_tx_block = self.nodes[0].getblock(block_hash)
         
-        try:
-            tx = self.nodes[0].getrawtransaction(spending_tx_block["tx"][1])
+#        try:
+#            tx = self.nodes[0].getrawtransaction(spending_tx_block["tx"][1])
             
-            print('PRINTING DECODED RAW TX FROM BLOCK')
-            print(self.nodes[0].decoderawtransaction(tx))
-            print('****')
+#            print('PRINTING DECODED RAW TX FROM BLOCK')
+#            print(self.nodes[0].decoderawtransaction(tx))
+#            print('****')
 
-            raw_tx = self.nodes[0].createrawtransaction(
-                [{
-                    "txid": tx,
-                    "vout": 1
-                }],
-                {address_two_public_key: 9.9999}
-            )
+#            raw_tx = self.nodes[0].createrawtransaction(
+#                [{
+#                    "txid": tx,
+#                    "vout": 1
+#                }],
+#                {address_two_public_key: 9.9999}
+#            )
 
-            print('PRINTING OUR NEW RAW TX')
-            print(self.nodes[0].decoderawtransaction(raw_tx))
-            print('****')
+#            print('PRINTING OUR NEW RAW TX')
+#            print(self.nodes[0].decoderawtransaction(raw_tx))
+#            print('****')
 
-            signed_raw_tx = self.nodes[0].signrawtransaction(raw_tx)
+#            signed_raw_tx = self.nodes[0].signrawtransaction(raw_tx)
 
-            print('PRINTING OUR SIGNED RAW TX')
-            print(signed_raw_tx)
-            print('****')
+#            print('PRINTING OUR SIGNED RAW TX')
+#            print(signed_raw_tx)
+#            print('****')
 
-            print('PRINTING OUR DECODED RAW TX')
-            print(self.nodes[0].decoderawtransaction(str(signed_raw_tx)))
-            print('****')
+#            print('PRINTING OUR DECODED RAW TX')
+#            print(self.nodes[0].decoderawtransaction(str(signed_raw_tx)))
+#            print('****')
 
-            self.nodes[0].sendrawtransaction(str(signed_raw_tx))
+#            self.nodes[0].sendrawtransaction(str(signed_raw_tx))
             
-            print("sending worked")
-        except JSONRPCException as e:
-            print('hey look error')
-            print(e.error['message'])
-            assert(1==2)
+#            print("sending worked")
+#        except JSONRPCException as e:
+#            print('hey look error')
+#            print(e.error['message'])
+#            assert(1==2)
 
 
         
@@ -181,29 +197,19 @@ class ColdStakingStaking(NavCoinTestFramework):
     #         # Staking rawtx w/signing (should fail)
 
 
+    def send_raw_transaction(self, txinfo, to_address, change_address, amount):
+        # Create a raw tx
+        inputs = [{ "txid" : txinfo["txid"], "vout" : 1}]
+        outputs = { to_address : amount, change_address : float(txinfo["amount"]) - amount - 0.01 }
+        rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
 
-    # def send_raw_transaction(self, destination_address, amount, time, description):
+        # Sign raw transaction
+        signresult = self.nodes[0].signrawtransaction(rawtx)
+        print(signresult)
+        assert(signresult["complete"])
 
-    #     amount = amount * 100000000
-
-    #     # Create a raw proposal tx
-    #     raw_proposal_tx = self.nodes[0].createrawtransaction(
-    #         [],
-    #         {"6ac1": 1},
-    #         json.dumps({"v": 2, "n": amount, "a": destination_address,  "d": time, "s": description})
-    #     )
-
-    #     # Modify version
-    #     raw_proposal_tx = "04" + raw_proposal_tx[2:]
-
-    #     # Fund raw transaction
-    #     raw_proposal_tx = self.nodes[0].fundrawtransaction(raw_proposal_tx)['hex']
-
-    #     # Sign raw transaction
-    #     raw_proposal_tx = self.nodes[0].signrawtransaction(raw_proposal_tx)['hex']
-
-    #     # Send raw transaction
-    #     return self.nodes[0].sendrawtransaction(raw_proposal_tx)
+        # Send raw transaction
+        return self.nodes[0].sendrawtransaction(signresult['hex'])
         
 
 if __name__ == '__main__':
