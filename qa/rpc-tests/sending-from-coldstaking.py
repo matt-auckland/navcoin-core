@@ -123,10 +123,11 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
 
         balance_post_send_three = self.nodes[0].getbalance()
-        
+        print(balance_post_send_three)
         # We expect our balance more or less gone (less some fees)
-        assert(balance_post_send_three - BLOCK_REWARD <= 1)
-
+        assert(balance_post_send_three - (BLOCK_REWARD * 2) <= 2)
+        #minus BLOCK_REWARD * 2 because we only spent one UTXO previously which did not contain
+        #the previous blockreward either
         # generate some new coins and send them to our cold staking address
         slow_gen(self.nodes[0], 2)
         # self.sync_all()
