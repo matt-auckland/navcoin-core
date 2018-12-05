@@ -85,7 +85,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         # We expect our balance to decrease by just the fees
         # We expect our staking weight to decrease (We don't hold the staking key)
-
+        print(staking_weight_post_send)
         assert(balance_post_send_one - BLOCK_REWARD >= balance_before_send - 1)
         assert(staking_weight_post_send / 100000000.0 <= 1)
 
@@ -105,9 +105,6 @@ class SendingFromColdStaking(NavCoinTestFramework):
             
         listunspent_txs = [ n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
         # construct and send rawtx
-        print(self.nodes[0].listunspent())
-        print(listunspent_txs)
-        print(listunspent_txs[0])
         self.send_raw_transaction(decoded_raw_transaction = listunspent_txs[0], to_address = address_Y_public_key, \
         change_address = coldstaking_address_spending, amount = float(balance_post_send_two) - 1)
 
