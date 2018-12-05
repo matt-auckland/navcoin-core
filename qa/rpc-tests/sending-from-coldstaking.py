@@ -91,20 +91,25 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         # Test spending from a cold staking wallet with the spending key
         print(balance_post_send_one)
-        # Send funds to a third party address with sendtoaddress()
+        # Send funds to a third party address with sendtoaddress(), change sent to a newly generated change address
+        #hence coldstakingaddress should be empty after
         self.nodes[0].sendtoaddress(address_Y_public_key, (float(balance_post_send_one) * float(0.5) - float(1)))
         slow_gen(self.nodes[0], 1)  
         # self.sync_all()
 
         balance_post_send_two = self.nodes[0].getbalance()
+        #checks balance will not be less than ~half our balance before sending - this 
+        #will occurs if we send to an address we do not own
         assert(balance_post_send_two - BLOCK_REWARD >= (float(balance_post_send_one) * float(0.5) - float(1)))
-        
-
+            
+        # construct and send rawtx
+        #NEED TO RESEND TO COLDSTAKING, THEN RE STATE LISTUNSPENT_TXS THEN CAN CONTINUE
+        self.nodes[0].sendtoaddress(coldstaking_address_spending, balance_post_send_two - 1)
+        slow_gen(self.nodes[0], 1)
+        listunspent_txs = [ n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
         # Send funds to a third party address using a signed raw transaction    
         # get unspent tx inputs
-            
-        listunspent_txs = [ n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
-        # construct and send rawtx
+
         self.send_raw_transaction(decoded_raw_transaction = listunspent_txs[0], to_address = address_Y_public_key, \
         change_address = coldstaking_address_spending, amount = float(balance_post_send_two) - 1)
 
