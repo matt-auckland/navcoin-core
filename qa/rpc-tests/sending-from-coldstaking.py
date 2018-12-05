@@ -111,11 +111,11 @@ class SendingFromColdStaking(NavCoinTestFramework):
         listunspent_txs = [ n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
         # Send funds to a third party address using a signed raw transaction    
         # get unspent tx inputs
-
+        print(listunspent_txs[0])
         self.send_raw_transaction(decoded_raw_transaction = listunspent_txs[0], \
         to_address = address_Y_public_key, \
         change_address = coldstaking_address_spending, \
-        amount = float(balance_post_send_two) - 1 \
+        amount = float(str(float(balance_post_send_two) - 2 - 0.01 - SENDING_FEE) + "00") \
         )
 
         slow_gen(self.nodes[0], 1)  
@@ -168,8 +168,37 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
     def send_raw_transaction(self, decoded_raw_transaction, to_address, change_address, amount):
         # Create a raw tx
-        inputs = [{ "txid" : decoded_raw_transaction["txid"], "vout" : 1}]
-        outputs = { to_address : amount, change_address : float(decoded_raw_transaction["amount"]) - amount - 0.01 }
+        print("decoded_raw_transaction[\"amount\"] :", decoded_raw_transaction["amount"])
+        print("amount :", amount)
+        inputs = [{ "txid" : decoded_raw_transaction["txid"], "vout" : decoded_raw_transaction["vout"]}]
+        print(decoded_raw_transaction)
+        #OUTPUT IS LESS THAN 1 SATOSHI - FIX
+        outputs = { to_address : amount, change_address : float(decoded_raw_transaction["amount"]) - amount - float(round(0.01, 9)) }
+        print(outputs)
+        #len of decimals ALWAYS 9+
+        decimal_places_to_address = len((str(outputs[to_address]).split("."))[1])
+        print(decimal_places_to_address)
+        decimal_places_change_address = len((str(outputs[change_address]).split("."))[1])
+        print(decimal_places_change_address)
+        output_decimals_list = [{"decimals_length" : decimal_places_to_address, "address" : to_address}, {"decimals_length" : decimal_places_change_address, "address" : change_address}]
+        for tx_output_decimals in output_decimals_list:
+            if tx_output_decimals["decimals_length"] < 8:
+                amount_of_zeros_needed = 8 - tx_output_decimals["decimals_length"]
+                outputs[tx_output_decimals["address"]] = float(str(outputs[tx_output_decimals["address"]]) + ("0" * amount_of_zeros_needed))
+            elif tx_output_decimals["decimals_length"] > 8:
+                print("got here")
+                #gets here correctly
+                amount_of_zeros_not_needed = -1 * (8 - tx_output_decimals["decimals_length"])
+                amount_sending = outputs[tx_output_decimals["address"]]
+                outputs[tx_output_decimals["address"]] = float(str(amount_sending)[0 : (len(str(amount_sending)) - amount_of_zeros_not_needed)])
+            else:
+                continue
+
+        print("to_address | sending:", outputs[to_address])
+        print("change_address | sending:", outputs[change_address])
+        print("total | sending:", outputs[to_address] + outputs[change_address])
+        print("available balance: ", self.nodes[0].getbalance())
+        #print("trying to send: ", outputs[0] + outputs[1])
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
 
         # Sign raw transaction
@@ -182,3 +211,5 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
 if __name__ == '__main__':
     SendingFromColdStaking().main()
+
+
