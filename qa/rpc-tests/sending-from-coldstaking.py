@@ -87,7 +87,9 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # We expect our staking weight to decrease (We don't hold the staking key)
         print(staking_weight_post_send)
         assert(balance_post_send_one - BLOCK_REWARD >= balance_before_send - 1)
-        assert(staking_weight_post_send / 100000000.0 <= 1)
+        #sent ~all funds to coldstaking address where we do not own the staking key hence our 
+        #staking weight will be 0 + slowgen reward when we generate which is 50
+        assert(staking_weight_post_send / 100000000.0 <= 51)
 
         # Test spending from a cold staking wallet with the spending key
         print(balance_post_send_one)
@@ -110,8 +112,11 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # Send funds to a third party address using a signed raw transaction    
         # get unspent tx inputs
 
-        self.send_raw_transaction(decoded_raw_transaction = listunspent_txs[0], to_address = address_Y_public_key, \
-        change_address = coldstaking_address_spending, amount = float(balance_post_send_two) - 1)
+        self.send_raw_transaction(decoded_raw_transaction = listunspent_txs[0], \
+        to_address = address_Y_public_key, \
+        change_address = coldstaking_address_spending, \
+        amount = float(balance_post_send_two) - 1 \
+        )
 
         slow_gen(self.nodes[0], 1)  
         # self.sync_all()
@@ -142,7 +147,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         assert(send_worked == True)
         
-        slow_gen(self.nodes[1], 1)
+        slow_gen(self.nodes[0], 1)
         # self.sync_all()
 
 
