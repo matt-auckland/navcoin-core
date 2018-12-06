@@ -70,16 +70,18 @@ class SendingFromColdStaking(NavCoinTestFramework):
         listunspent_txs = [n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
         # asserts we have recieved funds to the coldstaking address
         assert(len(listunspent_txs) > 0)
-        # asserts if amount recieved is what it should be; ~59812449 NAV
+        # asserts if amount recieved is what it should be; ~59812449.99711600 NAV
         assert(listunspent_txs[0]["amount"] == Decimal('59812449.99711600'))
-        # self.sync_all()
+        # grabs updated wallet balance and staking weight
         balance_post_send_one = self.nodes[0].getbalance()
         staking_weight_post_send = self.nodes[0].getstakinginfo()["weight"]
         # we expect our balance to decrease by just the fees
         # we expect our staking weight to decrease (we don't hold the staking key)
 
-        #difference in balance after is sending is just less than amount of 1 and block reward
-        assert(balance_post_send_one - BLOCK_REWARD >= balance_before_send - 1)
+        #difference in balance after sending and previous balance is the same when block reward and fee are taken out
+        # values are converted to string and "00" is added to right of == operand because values must have equal num of 
+        #decimals
+        assert(str(balance_post_send_one - BLOCK_REWARD) == (str(float(balance_before_send) - 0.00288400) + "00"))
         #sent ~all funds to coldstaking address where we do not own the staking key hence our 
         #staking weight will be 0 + slowgen reward when we generate which is 50
         assert(staking_weight_post_send / 100000000.0 <= 51)
