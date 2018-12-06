@@ -116,7 +116,6 @@ class SendingFromColdStaking(NavCoinTestFramework):
         listunspent_txs = [n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
         # send funds to a third party address using a signed raw transaction    
         # get unspent tx inputs
-        print("coldstaking utxo |||||| {}".format(listunspent_txs))
         self.send_raw_transaction(decoded_raw_transaction = listunspent_txs[0], \
         to_address = address_Y_public_key, \
         change_address = coldstaking_address_spending, \
@@ -127,13 +126,10 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # get new balance  
         balance_post_send_three = self.nodes[0].getbalance()
         print(balance_post_send_three, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        # we expect our balance more or less gone (less some fees)
-        assert(balance_post_send_three - (BLOCK_REWARD * 2) <= 2)
-        #minus block_reward * 2 because we only spent one utxo previously which did not contain
-        #the previous blockreward either
-        # generate some new coins and send them to our cold staking address
+        # we expect our balance to be zero
+        assert(balance_post_send_three - (BLOCK_REWARD * 2) == 0)
+        # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 2)
-        # self.sync_all()
 
         self.nodes[0].sendtoaddress(coldstaking_address_spending, self.nodes[0].getbalance() - 1)
         slow_gen(self.nodes[0], 1)
