@@ -63,7 +63,6 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         # send funds to the cold staking address (leave some nav for fees) -- we specifically require
         # a transaction fee of minimum 0.002884 navcoin due to the complexity of this transaction
-        # error occurs if we put less than 0.002884 as a fee
         self.nodes[0].sendtoaddress(coldstaking_address_spending, float(self.nodes[0].getbalance()) - MIN_COLDSTAKING_SENDING_FEE)
         # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 1)
@@ -136,12 +135,10 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # send to our spending address (should work)
         send_worked = False
         current_balance = self.nodes[0].getbalance()
-        print("current balance call #1 returns | {}".format(current_balance))
         try:
             #fails here - unsupported operand type(s) for *: 'decimal.decimal' and 'float'
             self.nodes[0].sendtoaddress(spending_address_public_key, float(current_balance) * 0.5 - 1)
             slow_gen(self.nodes[0], 1)
-            print("balance after sending half of total | {}".format(self.nodes[0].getbalance()))
             # our balance should be the same minus fees, as we own the address we sent to
             assert(self.nodes[0].getbalance() >= current_balance - 1 + BLOCK_REWARD) 
             send_worked = True
@@ -159,14 +156,9 @@ class SendingFromColdStaking(NavCoinTestFramework):
         current_balance = self.nodes[0].getbalance()
 
         try:
-            print("entered try block")
             self.nodes[0].sendtoaddress(staking_address_public_key, float(self.nodes[0].getbalance()) * 0.5 - 1)
-            print("sent half balance to staking address")
             slow_gen(self.nodes[0], 1)
-            print("called slow_gen()")
             # our balance should be half minus fees, as we dont own the address we sent to
-            print("balance : {}".format(self.nodes[0].getbalance() - BLOCK_REWARD))
-            print("current_balance variable value : {}".format(float(current_balance) * 0.5 - 1))
             assert(self.nodes[0].getbalance() - BLOCK_REWARD <= float(current_balance) * 0.5 - 1 + 2) 
             send_worked = True
         except Exception as e:
@@ -177,12 +169,8 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
     def send_raw_transaction(self, decoded_raw_transaction, to_address, change_address, amount):
         # create a raw tx
-        print("decoded_raw_transaction[\"amount\"] :", decoded_raw_transaction["amount"])
-        print("amount :", amount)
         inputs = [{ "txid" : decoded_raw_transaction["txid"], "vout" : decoded_raw_transaction["vout"]}]
-        print(decoded_raw_transaction)
         outputs = {to_address : amount}
-        print(outputs)
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
         # sign raw transaction
         signresult = self.nodes[0].signrawtransaction(rawtx)
