@@ -59,7 +59,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # check wallet staking weight roughly equals wallet balance
         assert(round(staking_weight_before_send / 100000000.0, -5) == round(balance_before_send, -5))
 
-        """send navcoin to our coldstaking address, check if amount is recieved, or any at all"""
+        """send navcoin to our coldstaking address, grab balance & staking weight"""
 
         # send funds to the cold staking address (leave some nav for fees) -- we specifically require
         # a transaction fee of minimum 0.002884 navcoin due to the complexity of this transaction
@@ -75,16 +75,20 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # grabs updated wallet balance and staking weight
         balance_post_send_one = self.nodes[0].getbalance()
         staking_weight_post_send = self.nodes[0].getstakinginfo()["weight"]
-        # we expect our balance to decrease by just the fees
-        # we expect our staking weight to decrease (we don't hold the staking key)
 
-        #difference in balance after sending and previous balance is the same when block reward and fee are taken out
+        """check balance decreased by just the fees"""
+        
+        #difference between balance after sending and previous balance is the same when block reward is removed
         # values are converted to string and "00" is added to right of == operand because values must have equal num of 
         #decimals
         assert(str(balance_post_send_one - BLOCK_REWARD) == (str(float(balance_before_send) - 0.00288400) + "00"))
+        
+        """check staking weight now == 0 (we don't hold the staking key)"""
+        
         #sent ~all funds to coldstaking address where we do not own the staking key hence our 
-        #staking weight will be 0 + slowgen reward when we generate which is 50
-        assert(staking_weight_post_send / 100000000.0 <= 51)
+        #staking weight will be 0 as our recieved BLOCK_REWARD navcoin isn't mature enough to count towards
+        #our staking weight
+        assert(staking_weight_post_send / 100000000.0 == 0)
 
         # test spending from a cold staking wallet with the spending key
         print(balance_post_send_one)
