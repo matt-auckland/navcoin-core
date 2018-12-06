@@ -78,30 +78,35 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         """check balance decreased by just the fees"""
         
-        #difference between balance after sending and previous balance is the same when block reward is removed
+        # difference between balance after sending and previous balance is the same when block reward is removed
         # values are converted to string and "00" is added to right of == operand because values must have equal num of 
-        #decimals
+        # decimals
         assert(str(balance_post_send_one - BLOCK_REWARD) == (str(float(balance_before_send) - 0.00288400) + "00"))
         
         """check staking weight now == 0 (we don't hold the staking key)"""
         
-        #sent ~all funds to coldstaking address where we do not own the staking key hence our 
-        #staking weight will be 0 as our recieved BLOCK_REWARD navcoin isn't mature enough to count towards
-        #our staking weight
+        # sent ~all funds to coldstaking address where we do not own the staking key hence our 
+        # staking weight will be 0 as our recieved BLOCK_REWARD navcoin isn't mature enough to count towards
+        # our staking weight
         assert(staking_weight_post_send / 100000000.0 == 0)
 
-        # test spending from a cold staking wallet with the spending key
-        print(balance_post_send_one)
-        # send funds to a third party address with sendtoaddress(), change sent to a newly generated change address
-        #hence coldstakingaddress should be empty after
-        self.nodes[0].sendtoaddress(address_Y_public_key, (float(balance_post_send_one) * float(0.5) - float(1)))
-        slow_gen(self.nodes[0], 1)  
-        # self.sync_all()
+        """test spending from a cold staking wallet with the spending key"""
 
+        # send half of our balance to a third party address with sendtoaddress(), change sent to a newly generated change address
+        # hence coldstakingaddress should be empty after
+        #to be sent amount converted to string first - when balance is divided by 2, result is 9 decimal places long
+        # string makes it easy to splice
+        to_be_sent_str = (str(float(balance_post_send_one) * float(0.5) - SENDING_FEE))
+        to_be_sent_str = to_be_sent_str[:len(to_be_sent_str) - 1]
+        print(to_be_sent_str)
+        self.nodes[0].sendtoaddress(address_Y_public_key, (float(to_be_sent_str)))
+        # put transaction in new block & update blockchain
+        slow_gen(self.nodes[0], 1)  
+        # wallet balance after sending
         balance_post_send_two = self.nodes[0].getbalance()
-        #checks balance will not be less than ~half our balance before sending - this 
+        #check balance will not be less than ~half our balance before sending - this 
         #will occurs if we send to an address we do not own
-        assert(balance_post_send_two - BLOCK_REWARD >= (float(balance_post_send_one) * float(0.5) - float(1)))
+        assert(balance_post_send_two - BLOCK_REWARD >= (float(balance_post_send_one) * float(0.5) - SENDING_FEE))
             
         # construct and send rawtx
         #need to resend to coldstaking, then re state listunspent_txs then can continue
