@@ -130,8 +130,8 @@ class SendingFromColdStaking(NavCoinTestFramework):
         assert(balance_post_send_three - (BLOCK_REWARD * 2) == 0)
         # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 2)
-
-        self.nodes[0].sendtoaddress(coldstaking_address_spending, self.nodes[0].getbalance() - 1)
+        print("we wanna send this |", float(self.nodes[0].getbalance()) - 0.00288400)
+        self.nodes[0].sendtoaddress(coldstaking_address_spending, float(str(float(self.nodes[0].getbalance()) - 0.00288400) + "00"))
         slow_gen(self.nodes[0], 1)
         # send to our spending address (should work)
         send_worked = False
