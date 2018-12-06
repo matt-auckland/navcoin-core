@@ -5,7 +5,7 @@
 import decimal
 from test_framework.test_framework import NavCoinTestFramework
 from test_framework.util import *
-
+#/TODO Leave comments for how much is sent in each func call
 class SendingFromColdStaking(NavCoinTestFramework):
     """Tests spending and staking to/from a spending wallet."""
 
@@ -64,7 +64,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         balance_before_send = self.nodes[0].getbalance()
         staking_weight_before_send = self.nodes[0].getstakinginfo()["weight"]
-
+        print("BALANCE BEFORE SEND | {}".format(balance_before_send))
         # Check wallet weight roughly equals wallet balance
         assert(round(staking_weight_before_send / 100000000.0, -5) == round(balance_before_send, -5))
         # Send funds to the cold staking address (leave some NAV for fees)
@@ -133,15 +133,18 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # self.sync_all()
 
         self.nodes[0].sendtoaddress(coldstaking_address_spending, self.nodes[0].getbalance() - 1)
-
+        slow_gen(self.nodes[0], 1)
         # send to our spending address (should work)
         send_worked = False
         current_balance = self.nodes[0].getbalance()
-
+        print("current balance call #1 returns | {}".format(current_balance))
         try:
-            self.nodes[0].sendtoaddress(spending_address_public_key, current_balance * 0.5 - 1)
+            #fails here - unsupported operand type(s) for *: 'decimal.Decimal' and 'float'
+            self.nodes[0].sendtoaddress(spending_address_public_key, float(current_balance) * 0.5 - 1)
+            slow_gen(self.nodes[0], 1)
+            print("balance after sending half of total | {}".format(self.nodes[0].getbalance()))
             # Our balance should be the same minus fees, as we own the address we sent to
-            assert(self.nodes[0].getbalance() >= current_balance - 1) 
+            assert(self.nodes[0].getbalance() >= current_balance - 1 + BLOCK_REWARD) 
             send_worked = True
         except Exception as e:
             print(e)
@@ -157,9 +160,15 @@ class SendingFromColdStaking(NavCoinTestFramework):
         current_balance = self.nodes[0].getbalance()
 
         try:
-            self.nodes[0].sendtoaddress(staking_address_public_key, self.nodes[0].getbalance() * 0.5 - 1)
+            print("entered try block")
+            self.nodes[0].sendtoaddress(staking_address_public_key, float(self.nodes[0].getbalance()) * 0.5 - 1)
+            print("sent half balance to staking address")
+            slow_gen(self.nodes[0], 1)
+            print("called slow_gen()")
             # Our balance should be half minus fees, as we dont own the address we sent to
-            assert(self.nodes[0].getbalance() <= current_balance * 0.5 - 1) 
+            print("balance : {}".format(self.nodes[0].getbalance() - BLOCK_REWARD))
+            print("current_balance variable value : {}".format(float(current_balance) * 0.5 - 1))
+            assert(self.nodes[0].getbalance() - BLOCK_REWARD <= float(current_balance) * 0.5 - 1 + 2) 
             send_worked = True
         except Exception as e:
             print(e)
