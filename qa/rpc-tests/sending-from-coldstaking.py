@@ -94,12 +94,9 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         # send half of our balance to a third party address with sendtoaddress(), change sent to a newly generated change address
         # hence coldstakingaddress should be empty after
-        #to be sent amount converted to string first - when balance is divided by 2, result is 9 decimal places long
-        # string makes it easy to splice
-        to_be_sent_str = (str(float(balance_post_send_one) * float(0.5) - SENDING_FEE))
-        to_be_sent_str = to_be_sent_str[:len(to_be_sent_str) - 1]
-        print(to_be_sent_str)
-        self.nodes[0].sendtoaddress(address_Y_public_key, (float(to_be_sent_str)))
+
+        to_be_sent = round(float(balance_post_send_one) * float(0.5) - SENDING_FEE, 8)
+        self.nodes[0].sendtoaddress(address_Y_public_key, (to_be_sent))
         # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 1)  
         # wallet balance after sending
