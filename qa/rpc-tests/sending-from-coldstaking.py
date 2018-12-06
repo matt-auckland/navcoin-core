@@ -63,6 +63,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         # send funds to the cold staking address (leave some nav for fees) -- we specifically require
         # a transaction fee of minimum 0.002884 navcoin due to the complexity of this transaction
+        # error occurs if we put less than 0.002884 as a fee
         self.nodes[0].sendtoaddress(coldstaking_address_spending, float(self.nodes[0].getbalance()) - 0.002884)
         # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 1)
@@ -70,6 +71,8 @@ class SendingFromColdStaking(NavCoinTestFramework):
         listunspent_txs = [n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
         # asserts we have recieved funds to the coldstaking address
         assert(len(listunspent_txs) > 0)
+        # asserts that the number of utxo recieved is only 1:
+        assert(len(listunspent_txs) == 1)
         # asserts if amount recieved is what it should be; ~59812449.99711600 NAV
         assert(listunspent_txs[0]["amount"] == Decimal('59812449.99711600'))
         # grabs updated wallet balance and staking weight
