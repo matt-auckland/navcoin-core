@@ -24,8 +24,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         """generate first 300 blocks to lock in softfork, verify coldstaking is active"""
 
-        slow_gen(self.nodes[0], 100)
-        print("generated 300 blocks")      
+        slow_gen(self.nodes[0], 100)     
         # verify that cold staking has started
         assert(self.nodes[0].getblockchaininfo()["bip9_softforks"]["coldstaking"]["status"] == "started")
         slow_gen(self.nodes[0], 100)
@@ -39,6 +38,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         # declare transaction-related constants
         SENDING_FEE= 0.00010000
+        MIN_COLDSTAKING_SENDING_FEE = 0.00288400
         BLOCK_REWARD = 50
         # generate address owned by the wallet
         spending_address_public_key = self.nodes[0].getnewaddress()
@@ -64,7 +64,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # send funds to the cold staking address (leave some nav for fees) -- we specifically require
         # a transaction fee of minimum 0.002884 navcoin due to the complexity of this transaction
         # error occurs if we put less than 0.002884 as a fee
-        self.nodes[0].sendtoaddress(coldstaking_address_spending, float(self.nodes[0].getbalance()) - 0.002884)
+        self.nodes[0].sendtoaddress(coldstaking_address_spending, float(self.nodes[0].getbalance()) - MIN_COLDSTAKING_SENDING_FEE)
         # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 1)
         # create list for all coldstaking utxo recieved
@@ -84,7 +84,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # difference between balance after sending and previous balance is the same when block reward is removed
         # values are converted to string and "00" is added to right of == operand because values must have equal num of 
         # decimals
-        assert(str(balance_post_send_one - BLOCK_REWARD) == (str(float(balance_before_send) - 0.00288400) + "00"))
+        assert(str(balance_post_send_one - BLOCK_REWARD) == (str(float(balance_before_send) - MIN_COLDSTAKING_SENDING_FEE) + "00"))
         
         """check staking weight now == 0 (we don't hold the staking key)"""
         
@@ -119,19 +119,19 @@ class SendingFromColdStaking(NavCoinTestFramework):
         self.send_raw_transaction(decoded_raw_transaction = listunspent_txs[0], \
         to_address = address_Y_public_key, \
         change_address = coldstaking_address_spending, \
-        amount = float(str(float(listunspent_txs[0]["amount"]) - 0.00288400) + "00")\
+        amount = float(str(float(listunspent_txs[0]["amount"]) - MIN_COLDSTAKING_SENDING_FEE) + "00")\
         )
         # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 1)
         # get new balance  
         balance_post_send_three = self.nodes[0].getbalance()
-        print(balance_post_send_three, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         # we expect our balance to be zero
         assert(balance_post_send_three - (BLOCK_REWARD * 2) == 0)
         # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 2)
-        print("we wanna send this |", float(self.nodes[0].getbalance()) - 0.00288400)
-        self.nodes[0].sendtoaddress(coldstaking_address_spending, float(str(float(self.nodes[0].getbalance()) - 0.00288400) + "00"))
+        # send our entire wallet balance - minimum fee required to coldstaking address
+        self.nodes[0].sendtoaddress(coldstaking_address_spending, float(str(float(self.nodes[0].getbalance()) - MIN_COLDSTAKING_SENDING_FEE) + "00"))
+        # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 1)
         # send to our spending address (should work)
         send_worked = False
@@ -184,11 +184,9 @@ class SendingFromColdStaking(NavCoinTestFramework):
         outputs = {to_address : amount}
         print(outputs)
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
-
         # sign raw transaction
         signresult = self.nodes[0].signrawtransaction(rawtx)
         assert(signresult["complete"])
-
         # send raw transaction
         return self.nodes[0].sendrawtransaction(signresult['hex'])
         
