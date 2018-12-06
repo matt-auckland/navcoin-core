@@ -94,7 +94,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         # send half of our balance to a third party address with sendtoaddress(), change sent to a newly generated change address
         # hence coldstakingaddress should be empty after
-
+        # amount to be sent has to have 8 decimals
         to_be_sent = round(float(balance_post_send_one) * float(0.5) - SENDING_FEE, 8)
         self.nodes[0].sendtoaddress(address_Y_public_key, (to_be_sent))
         # put transaction in new block & update blockchain
@@ -102,17 +102,14 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # wallet balance after sending
         balance_post_send_two = self.nodes[0].getbalance()
         #check balance will not be less than ~half our balance before sending - this 
-        #will occurs if we send to an address we do not own
-        assert(balance_post_send_two - BLOCK_REWARD >= (float(balance_post_send_one) * float(0.5) - SENDING_FEE))
-            
-        # construct and send rawtx
-        #need to resend to coldstaking, then re state listunspent_txs then can continue
-        self.nodes[0].sendtoaddress(coldstaking_address_spending, balance_post_send_two - 1)
+        # will occurs if we send to an address we do not own
+        assert(balance_post_send_two - BLOCK_REWARD >= (float(balance_post_send_one) * float(0.5) - SENDING_FEE))   
+        # resend to coldstaking, then re state listunspent_txs
+        self.nodes[0].sendtoaddress(coldstaking_address_spending, round(float(balance_post_send_two) - SENDING_FEE, 8))
         slow_gen(self.nodes[0], 1)
         listunspent_txs = [ n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
         # send funds to a third party address using a signed raw transaction    
         # get unspent tx inputs
-        print(listunspent_txs[0])
         self.send_raw_transaction(decoded_raw_transaction = listunspent_txs[0], \
         to_address = address_Y_public_key, \
         change_address = coldstaking_address_spending, \
@@ -183,7 +180,6 @@ class SendingFromColdStaking(NavCoinTestFramework):
         print("amount :", amount)
         inputs = [{ "txid" : decoded_raw_transaction["txid"], "vout" : decoded_raw_transaction["vout"]}]
         print(decoded_raw_transaction)
-        #output is less than 1 satoshi - fix
         outputs = { to_address : amount, change_address : float(decoded_raw_transaction["amount"]) - amount - float(round(0.01, 9)) }
         print(outputs)
         #len of decimals always 9+
