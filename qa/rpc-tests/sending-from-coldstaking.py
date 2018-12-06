@@ -61,8 +61,9 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         """send navcoin to our coldstaking address, check if amount is recieved, or any at all"""
 
-        # send funds to the cold staking address (leave some nav for fees) - left ~1 nav for fee and change
-        self.nodes[0].sendtoaddress(coldstaking_address_spending, self.nodes[0].getbalance() - 1)
+        # send funds to the cold staking address (leave some nav for fees) -- we specifically require
+        # a transaction fee of minimum 0.002884 navcoin due to the complexity of this transaction
+        self.nodes[0].sendtoaddress(coldstaking_address_spending, float(self.nodes[0].getbalance()) - 0.002884)
         # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 1)
         # create list for all coldstaking utxo recieved
@@ -70,7 +71,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
         # asserts we have recieved funds to the coldstaking address
         assert(len(listunspent_txs) > 0)
         # asserts if amount recieved is what it should be; ~59812449 NAV
-        assert(listunspent_txs[0]["amount"] == Decimal('59812449.00000000'))
+        assert(listunspent_txs[0]["amount"] == Decimal('59812449.99711600'))
         # self.sync_all()
         balance_post_send_one = self.nodes[0].getbalance()
         staking_weight_post_send = self.nodes[0].getstakinginfo()["weight"]
