@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018 The Navcoin Core developers
-# Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# copyright (c) 2018 the navcoin core developers
+# distributed under the mit software license, see the accompanying
+# file copying or http://www.opensource.org/licenses/mit-license.php.
 import decimal
 from test_framework.test_framework import NavCoinTestFramework
 from test_framework.util import *
-#/TODO Leave comments for how much is sent in each func call
+#/TODO leave comments for how much is sent in each func call
 class SendingFromColdStaking(NavCoinTestFramework):
     """Tests spending and staking to/from a spending wallet."""
 
+    # set up num of nodes
     def __init__(self):
         super().__init__()
         self.setup_clean_chain = True
         self.num_nodes = 2
-
+    # set up nodes
     def setup_network(self, split=False):
         self.nodes = self.setup_nodes()
         self.is_network_split = split
@@ -21,79 +22,70 @@ class SendingFromColdStaking(NavCoinTestFramework):
     def run_test(self):
         self.nodes[0].staking(False)
 
+        """generate first 300 blocks to lock in softfork, verify coldstaking is active"""
+
         slow_gen(self.nodes[0], 100)
         print("generated 300 blocks")      
-
-        # Verify the Cold Staking is started
+        # verify that cold staking has started
         assert(self.nodes[0].getblockchaininfo()["bip9_softforks"]["coldstaking"]["status"] == "started")
-
         slow_gen(self.nodes[0], 100)
-        
-
-        # Verify the Cold Staking is locked_in
+        # verify that cold staking is locked_in
         assert(self.nodes[0].getblockchaininfo()["bip9_softforks"]["coldstaking"]["status"] == "locked_in")
-
         slow_gen(self.nodes[0], 100)
-        
-
-        # Verify the Cold Staking is active
+        # verify that cold staking is active
         assert(self.nodes[0].getblockchaininfo()["bip9_softforks"]["coldstaking"]["status"] == "active")
 
-        # Generate our addresses
+        """set up transaction-related constants and addresses"""
 
+        # declare transaction-related constants
         SENDING_FEE= 0.00010000
         BLOCK_REWARD = 50
-
+        # generate address owned by the wallet
         spending_address_public_key = self.nodes[0].getnewaddress()
         spending_address_private_key = self.nodes[0].dumpprivkey(spending_address_public_key)
-
-        # Third party addresses and keys
+        # declare third party addresses and keys
         staking_address_public_key = "mqyGZvLYfEH27Zk3z6JkwJgB1zpjaEHfiW"
         staking_address_private_key = "cMuNajSALbixZvApkcYVE4KgJoeQY92umhEVdQwqX9wSJUzkmdvF"
         address_Y_public_key = "mrfjgazyerYxDQHJAPDdUcC3jpmi8WZ2uv"
         address_Y_private_key = "cST2mj1kXtiRyk8VSXU3F9pnTp7GrGpyqHRv4Gtap8jo4LGUMvqo"
-
-
-        ## Our wallet holds the spending address key
+        # generate coldstaking address which we hold the spending key to
         coldstaking_address_spending = self.nodes[0].getcoldstakingaddress(staking_address_public_key, spending_address_public_key)
-    
-        # Sending to cold address:
-            # Success case:
-            # Available balance decrease by fees
-            # Staking weight decrease (We don't hold the staking key)
 
+        """check wallet balance and staking weight"""
+
+        # get wallet balance and staking weight before sending some navcoin
         balance_before_send = self.nodes[0].getbalance()
         staking_weight_before_send = self.nodes[0].getstakinginfo()["weight"]
-        print("BALANCE BEFORE SEND | {}".format(balance_before_send))
-        # Check wallet weight roughly equals wallet balance
+        # check wallet staking weight roughly equals wallet balance
         assert(round(staking_weight_before_send / 100000000.0, -5) == round(balance_before_send, -5))
-        # Send funds to the cold staking address (leave some NAV for fees)
+
+        """send navcoin to our coldstaking address, check if amount is recieved, or any at all"""
+
+        # send funds to the cold staking address (leave some nav for fees) - left ~1 nav for fee and change
         self.nodes[0].sendtoaddress(coldstaking_address_spending, self.nodes[0].getbalance() - 1)
+        # put transaction in new block & update blockchain
         slow_gen(self.nodes[0], 1)
-        listunspent_txs = [ n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
-        #asserts we have recieved funds to the coldstaking address
+        # create list for all coldstaking utxo recieved
+        listunspent_txs = [n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
+        # asserts we have recieved funds to the coldstaking address
         assert(len(listunspent_txs) > 0)
-        #asserts if amount recieved is what it should be
+        # asserts if amount recieved is what it should be; ~59812449 NAV
         assert(listunspent_txs[0]["amount"] == Decimal('59812449.00000000'))
         # self.sync_all()
         balance_post_send_one = self.nodes[0].getbalance()
         staking_weight_post_send = self.nodes[0].getstakinginfo()["weight"]
+        # we expect our balance to decrease by just the fees
+        # we expect our staking weight to decrease (we don't hold the staking key)
 
-        # print(balance_post_send_one, self.nodes[0].listunspent())
-        # txids = [ n["txid"] for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
-        # print(txids)
-
-        # We expect our balance to decrease by just the fees
-        # We expect our staking weight to decrease (We don't hold the staking key)
-        print(staking_weight_post_send)
+        #difference in balance after is sending is just less than amount of 1 and block reward
         assert(balance_post_send_one - BLOCK_REWARD >= balance_before_send - 1)
         #sent ~all funds to coldstaking address where we do not own the staking key hence our 
         #staking weight will be 0 + slowgen reward when we generate which is 50
         assert(staking_weight_post_send / 100000000.0 <= 51)
 
-        # Test spending from a cold staking wallet with the spending key
+        # test spending from a cold staking wallet with the spending key
         print(balance_post_send_one)
-        # Send funds to a third party address with sendtoaddress(), change sent to a newly generated change address
+        # send funds to a third party address with sendtoaddress(), change sent to a newly generated change address
         #hence coldstakingaddress should be empty after
         self.nodes[0].sendtoaddress(address_Y_public_key, (float(balance_post_send_one) * float(0.5) - float(1)))
         slow_gen(self.nodes[0], 1)  
@@ -105,11 +97,11 @@ class SendingFromColdStaking(NavCoinTestFramework):
         assert(balance_post_send_two - BLOCK_REWARD >= (float(balance_post_send_one) * float(0.5) - float(1)))
             
         # construct and send rawtx
-        #NEED TO RESEND TO COLDSTAKING, THEN RE STATE LISTUNSPENT_TXS THEN CAN CONTINUE
+        #need to resend to coldstaking, then re state listunspent_txs then can continue
         self.nodes[0].sendtoaddress(coldstaking_address_spending, balance_post_send_two - 1)
         slow_gen(self.nodes[0], 1)
         listunspent_txs = [ n for n in self.nodes[0].listunspent() if n["address"] == coldstaking_address_spending]
-        # Send funds to a third party address using a signed raw transaction    
+        # send funds to a third party address using a signed raw transaction    
         # get unspent tx inputs
         print(listunspent_txs[0])
         self.send_raw_transaction(decoded_raw_transaction = listunspent_txs[0], \
@@ -124,9 +116,9 @@ class SendingFromColdStaking(NavCoinTestFramework):
 
         balance_post_send_three = self.nodes[0].getbalance()
         print(balance_post_send_three)
-        # We expect our balance more or less gone (less some fees)
+        # we expect our balance more or less gone (less some fees)
         assert(balance_post_send_three - (BLOCK_REWARD * 2) <= 2)
-        #minus BLOCK_REWARD * 2 because we only spent one UTXO previously which did not contain
+        #minus block_reward * 2 because we only spent one utxo previously which did not contain
         #the previous blockreward either
         # generate some new coins and send them to our cold staking address
         slow_gen(self.nodes[0], 2)
@@ -139,11 +131,11 @@ class SendingFromColdStaking(NavCoinTestFramework):
         current_balance = self.nodes[0].getbalance()
         print("current balance call #1 returns | {}".format(current_balance))
         try:
-            #fails here - unsupported operand type(s) for *: 'decimal.Decimal' and 'float'
+            #fails here - unsupported operand type(s) for *: 'decimal.decimal' and 'float'
             self.nodes[0].sendtoaddress(spending_address_public_key, float(current_balance) * 0.5 - 1)
             slow_gen(self.nodes[0], 1)
             print("balance after sending half of total | {}".format(self.nodes[0].getbalance()))
-            # Our balance should be the same minus fees, as we own the address we sent to
+            # our balance should be the same minus fees, as we own the address we sent to
             assert(self.nodes[0].getbalance() >= current_balance - 1 + BLOCK_REWARD) 
             send_worked = True
         except Exception as e:
@@ -165,7 +157,7 @@ class SendingFromColdStaking(NavCoinTestFramework):
             print("sent half balance to staking address")
             slow_gen(self.nodes[0], 1)
             print("called slow_gen()")
-            # Our balance should be half minus fees, as we dont own the address we sent to
+            # our balance should be half minus fees, as we dont own the address we sent to
             print("balance : {}".format(self.nodes[0].getbalance() - BLOCK_REWARD))
             print("current_balance variable value : {}".format(float(current_balance) * 0.5 - 1))
             assert(self.nodes[0].getbalance() - BLOCK_REWARD <= float(current_balance) * 0.5 - 1 + 2) 
@@ -177,15 +169,15 @@ class SendingFromColdStaking(NavCoinTestFramework):
         
 
     def send_raw_transaction(self, decoded_raw_transaction, to_address, change_address, amount):
-        # Create a raw tx
+        # create a raw tx
         print("decoded_raw_transaction[\"amount\"] :", decoded_raw_transaction["amount"])
         print("amount :", amount)
         inputs = [{ "txid" : decoded_raw_transaction["txid"], "vout" : decoded_raw_transaction["vout"]}]
         print(decoded_raw_transaction)
-        #OUTPUT IS LESS THAN 1 SATOSHI - FIX
+        #output is less than 1 satoshi - fix
         outputs = { to_address : amount, change_address : float(decoded_raw_transaction["amount"]) - amount - float(round(0.01, 9)) }
         print(outputs)
-        #len of decimals ALWAYS 9+
+        #len of decimals always 9+
         decimal_places_to_address = len((str(outputs[to_address]).split("."))[1])
         print(decimal_places_to_address)
         decimal_places_change_address = len((str(outputs[change_address]).split("."))[1])
@@ -211,11 +203,11 @@ class SendingFromColdStaking(NavCoinTestFramework):
         #print("trying to send: ", outputs[0] + outputs[1])
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
 
-        # Sign raw transaction
+        # sign raw transaction
         signresult = self.nodes[0].signrawtransaction(rawtx)
         assert(signresult["complete"])
 
-        # Send raw transaction
+        # send raw transaction
         return self.nodes[0].sendrawtransaction(signresult['hex'])
         
 
