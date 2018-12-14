@@ -102,6 +102,7 @@ private:
     QMenuBar *appMenuBar;
     QAction *overviewAction;
     QAction *historyAction;
+    QAction *communityFundMenuAction;
     QAction *quitAction;
     QAction *sendCoinsAction;
     QAction *sendCoinsMenuAction;
@@ -134,6 +135,7 @@ private:
     QPushButton *topMenu2;
     QPushButton *topMenu3;
     QPushButton *topMenu4;
+    QPushButton *topMenu5;
 
     QSystemTrayIcon *trayIcon;
     QMenu *trayIconMenu;
@@ -220,6 +222,8 @@ private Q_SLOTS:
     void gotoOverviewPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
+    /** Switch to community fund page */
+    void gotoCfundPage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */

@@ -388,6 +388,13 @@ void NavCoinGUI::createActions()
     historyAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
     tabGroup->addAction(historyAction);
 
+    communityFundMenuAction = new QAction(platformStyle->SingleColorIcon(":/icons/history"), tr("&Community Fund"), this);
+    communityFundMenuAction->setStatusTip(tr("View Community Fund"));
+    communityFundMenuAction->setToolTip(communityFundMenuAction->statusTip());
+    communityFundMenuAction->setCheckable(true);
+    communityFundMenuAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
+    tabGroup->addAction(communityFundMenuAction);
+
     updatePriceAction  = new QAction(tr("Update exchange prices"), this);
     updatePriceAction->setStatusTip(tr("Update exchange prices"));
 
@@ -408,6 +415,8 @@ void NavCoinGUI::createActions()
     connect(receiveCoinsMenuAction, SIGNAL(triggered()), this, SLOT(gotoRequestPaymentPage()));
     connect(historyAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(historyAction, SIGNAL(triggered()), this, SLOT(gotoHistoryPage()));
+    connect(communityFundMenuAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(communityFundMenuAction, SIGNAL(triggered()), this, SLOT(gotoCFundPage()));
     connect(toggleStakingAction, SIGNAL(triggered()), this, SLOT(toggleStaking()));
 #endif // ENABLE_WALLET
 
@@ -665,6 +674,15 @@ void NavCoinGUI::createToolBars()
         topMenu4->setStyleSheet(
                     "#topMenu4 { border-image: url(:/icons/menu_transaction_ns)  0 0 0 0 stretch stretch; border: 0px; }"
                     "#topMenu4:hover { border-image: url(:/icons/menu_transaction_hover)  0 0 0 0 stretch stretch; border: 0px; }");
+        
+        topMenu5 = new QPushButton();
+        walletFrame->menuLayout->addWidget(topMenu5);
+        topMenu5->setFixedSize(215,94);
+        topMenu5->setObjectName("topMenu5");
+        connect(topMenu5, SIGNAL(clicked()), this, SLOT(gotoCFundPage()));
+        topMenu5->setStyleSheet(
+                    "#topMenu5 { border-image: url(:/icons/menu_transaction_ns)  0 0 0 0 stretch stretch; border: 0px; }"
+                    "#topMenu5:hover { border-image: url(:/icons/menu_transaction_hover)  0 0 0 0 stretch stretch; border: 0px; }");
 
         QWidget *topMenu = new QWidget();
         topMenu->setObjectName("topMenu");
@@ -882,12 +900,15 @@ void NavCoinGUI::optionsClicked()
     dlg.exec();
 }
 
-void NavCoinGUI::cfundProposalsClicked()
+void NavCoinGUI::cfundProposalsClicked(bool fPRequestFound, bool fProposalFound)
 {
     if(!clientModel || !clientModel->getOptionsModel())
         return;
-
-    CFund_Voting dlg(this, false);
+    if (fPRequestFound && !fProposalFound) {
+        CFund_Voting dlg(this, true);
+    } else {
+        CFund_Voting dlg(this, false);
+    }
     dlg.exec();
 }
 
@@ -970,6 +991,23 @@ void NavCoinGUI::gotoHistoryPage()
                 "#topMenu4 { border-image: url(:/icons/menu_transaction_s)  0 0 0 0 stretch stretch; border: 0px; }");
     historyAction->setChecked(true);
     if (walletFrame) walletFrame->gotoHistoryPage();
+}
+
+void NavCoinGUI::gotoCFundPage()
+{
+    topMenu1->setStyleSheet(
+       "#topMenu1 { border-image: url(:/icons/menu_home_ns)  0 0 0 0 stretch stretch; border: 0px; }"
+       "#topMenu1:hover { border-image: url(:/icons/menu_home_hover)  0 0 0 0 stretch stretch; border: 0px; }");
+    topMenu2->setStyleSheet(
+                "#topMenu2 { border-image: url(:/icons/menu_send_ns)  0 0 0 0 stretch stretch; border: 0px; }"
+                "#topMenu2:hover { border-image: url(:/icons/menu_send_hover)  0 0 0 0 stretch stretch; border: 0px; }");
+    topMenu3->setStyleSheet(
+                "#topMenu3 { border-image: url(:/icons/menu_receive_ns)  0 0 0 0 stretch stretch; border: 0px; }"
+                "#topMenu3:hover { border-image: url(:/icons/menu_receive_hover)  0 0 0 0 stretch stretch; border: 0px; }");
+    topMenu4->setStyleSheet(
+                "#topMenu4 { border-image: url(:/icons/menu_transaction_s)  0 0 0 0 stretch stretch; border: 0px; }");
+    historyAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoCfundPage();
 }
 
 void NavCoinGUI::gotoReceiveCoinsPage()
@@ -1797,7 +1835,8 @@ void NavCoinGUI::updateStakingStatus()
         }
         else if (nLastCoinStakeSearchInterval && nWeight)
         {
-            bool fFound = false;
+            bool fProposalFound = false
+            bool fPRequestFound = false
             std::vector<CFund::CProposal> vec;
             if(pblocktree->GetProposalIndex(vec))
             {
@@ -1807,14 +1846,14 @@ void NavCoinGUI::updateStakingStatus()
                     auto it = std::find_if( vAddedProposalVotes.begin(), vAddedProposalVotes.end(),
                         [&proposal](const std::pair<std::string, int>& element){ return element.first == proposal.hash.ToString();} );
                     if (it == vAddedProposalVotes.end()) {
-                        fFound = true;
+                        fProposalFound = true;
                         break;
                     }
                 }
             }
 
             std::vector<CFund::CPaymentRequest> vec2;
-            if(!fFound && pblocktree->GetPaymentRequestIndex(vec2))
+            if(pblocktree->GetPaymentRequestIndex(vec2))
             {
                 BOOST_FOREACH(const CFund::CPaymentRequest& prequest, vec2) {
                     if (prequest.fState != CFund::NIL)
@@ -1822,15 +1861,21 @@ void NavCoinGUI::updateStakingStatus()
                     auto it = std::find_if( vAddedPaymentRequestVotes.begin(), vAddedPaymentRequestVotes.end(),
                         [&prequest](const std::pair<std::string, int>& element){ return element.first == prequest.hash.ToString();} );
                     if (it == vAddedPaymentRequestVotes.end()) {
-                        fFound = true;
+                        fPRequestFound = true;
                         break;
                     }
                 }
             }
-            if (fFound && !this->fDontShowAgain && (this->lastDialogShown + (60*60*24)) < GetTimeNow()) {
+            if ((fPRequestFound || fProposalFound) && !this->fDontShowAgain && (this->lastDialogShown + (60*60*24)) < GetTimeNow()) {
                 QCheckBox *cb = new QCheckBox("Don't show this notification again until wallet is restarted.");
                 QMessageBox msgbox;
-                msgbox.setText(tr("There are new proposals or payment requests in the Community Fund.<br><br>As a staker it's important to engage in the voting process.<br><br>Please cast your vote using the voting dialog!"));
+                if (!fPRequestFound && fProposalFound) {
+                    msgbox.setText(tr("There are new proposals requests in the Community Fund.<br><br>As a staker it's important to engage in the voting process.<br><br>Please cast your vote using the voting dialog!"));
+                } else if (fPRequestFound && !fProposalFound) {
+                    msgbox.setText(tr("There are new payment requests in the Community Fund.<br><br>As a staker it's important to engage in the voting process.<br><br>Please cast your vote using the voting dialog!"));
+                } else if (fPRequestFound && fProposalFound) {
+                    msgbox.setText(tr("There are new proposals and payment requests in the Community Fund.<br><br>As a staker it's important to engage in the voting process.<br><br>Please cast your vote using the voting dialog!"));
+                }
                 msgbox.setIcon(QMessageBox::Icon::Warning);
                 msgbox.setCheckBox(cb);
                 QAbstractButton* pButtonInfo = msgbox.addButton(tr("Read about the Community Fund"), QMessageBox::YesRole);
@@ -1848,7 +1893,7 @@ void NavCoinGUI::updateStakingStatus()
                 }
 
                 if (msgbox.clickedButton()==pButtonOpen) {
-                    cfundProposalsClicked();
+                    cfundProposalsClicked(fPRequestFound, fProposalFound);
                 }
                 if (msgbox.clickedButton()==pButtonInfo) {
                     QString link = QString("https://navcoin.org/en/community-fund/");
