@@ -251,7 +251,7 @@ private Q_SLOTS:
     /** Show configuration dialog */
     void optionsClicked();
     /** Community Fund related */
-    void cfundProposalsClicked();
+    void cfundProposalsClicked(bool fPRequestFound, bool fProposalFound);
     void cfundPaymentRequestsClicked();
     /** Show about dialog */
     void aboutClicked();

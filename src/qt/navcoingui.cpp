@@ -1835,8 +1835,8 @@ void NavCoinGUI::updateStakingStatus()
         }
         else if (nLastCoinStakeSearchInterval && nWeight)
         {
-            bool fProposalFound = false
-            bool fPRequestFound = false
+            bool fProposalFound = false;
+            bool fPRequestFound = false;
             std::vector<CFund::CProposal> vec;
             if(pblocktree->GetProposalIndex(vec))
             {
