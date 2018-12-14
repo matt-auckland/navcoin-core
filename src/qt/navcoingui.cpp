@@ -1008,7 +1008,7 @@ void NavCoinGUI::gotoCFundPage()
     topMenu4->setStyleSheet(
                 "#topMenu4 { border-image: url(:/icons/menu_transaction_s)  0 0 0 0 stretch stretch; border: 0px; }");
     historyAction->setChecked(true);
-    if (walletFrame) walletFrame->gotoCfundPage();
+    if (walletFrame) walletFrame->gotoCFundPage();
 }
 
 void NavCoinGUI::gotoReceiveCoinsPage()
