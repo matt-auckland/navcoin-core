@@ -906,10 +906,11 @@ void NavCoinGUI::cfundProposalsClicked(bool fPRequestFound, bool fProposalFound)
         return;
     if (fPRequestFound && !fProposalFound) {
         CFund_Voting dlg(this, true);
+        dlg.exec();
     } else {
         CFund_Voting dlg(this, false);
+        dlg.exec();
     }
-    dlg.exec();
 }
 
 void NavCoinGUI::cfundPaymentRequestsClicked()

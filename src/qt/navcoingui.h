@@ -223,7 +223,7 @@ private Q_SLOTS:
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch to community fund page */
-    void gotoCfundPage();
+    void gotoCFundPage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
