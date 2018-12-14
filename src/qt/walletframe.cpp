@@ -225,7 +225,7 @@ void WalletFrame::gotoCFundPage()
 {
     QMap<QString, WalletView*>::const_iterator i;
     for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
-        i.value()->gotoCFundPage();
+        i.value()->cfundPage();
 }
 
 void WalletFrame::gotoReceiveCoinsPage()
